@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split-Flap Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Condensed:wght@300;500;600;700&display=swap">
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* Globe (from spinning-earth.html) */
+  :root {
+    --hue: 220deg;
+    --base-fg-sat: 50%;
+    --base-fg-lum: 80%;
+    --base-fg: hsl(var(--hue), var(--base-fg-sat), var(--base-fg-lum));
+  }
+
+  .globe-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    pointer-events: none;
+    font-size: 286px;
+    opacity: 0.4;
+  }
+
+  .globe-container .notice {
+    text-align: center;
+    line-height: 0;
+  }
+
+  .globe-container .world {
+    fill: #fafafa;
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    border-radius: 50%;
+    overflow: hidden;
+    white-space: nowrap;
+    border: 1px solid #fafafa;
+    box-sizing: border-box;
+    scale: 0.8;
+    mix-blend-mode: luminosity;
+  }
+
+  .globe-container .world svg {
+    width: 4em;
+    height: 1em;
+    margin-top: calc(-2px + -0.05em);
+    display: inline;
+    animation: world-scroll 15s linear infinite;
+    mix-blend-mode: luminosity;
+  }
+
+  @keyframes world-scroll {
+    from { margin-left: -2.75em; }
+    to { margin-left: -1em; }
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    background: #141c1e url('splash-bg.png') no-repeat center center;
+    background-size: cover;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+  }
+
+  .page-heading {
+    width: 100%;
+    padding: 2rem 1rem 0;
+    text-align: center;
+    margin-top: 25%;
+    font-size: 3rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+
+  .board {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 400px;
+    box-sizing: border-box;
+    gap: 2px;
+    padding: 12px 16px;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    user-select: none;
+    font-family: 'Roboto Condensed', sans-serif;
+  }
+
+  .board:hover {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .flap-group {
+    display: flex;
+    gap: 2px;
+  }
+
+  /* --- Flap tile --- */
+  .flap {
+    position: relative;
+    width: 40px;
+    height: 60px;
+    perspective: 200px;
+  }
+
+  .flap-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 400;
+    color: #e8e4dc;
+    letter-spacing: -1px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #282828;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  /* Split line */
+  .flap-face::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+    z-index: 2;
+  }
+
+  /* Top and bottom half shading */
+  .flap-face::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.02) 100%);
+    z-index: 1;
+  }
+
+  /* Hinge dots */
+  .flap-face .hinge-left,
+  .flap-face .hinge-right {
+    position: absolute;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #404040;
+    border: 1px solid #3a3a3a;
+    transform: translateY(-50%);
+    z-index: 3;
+  }
+  .flap-face .hinge-left { left: -3px; }
+  .flap-face .hinge-right { right: -3px; }
+
+  /* --- Flip animation layers --- */
+  .flap-top, .flap-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50%;
+    overflow: hidden;
+    background: #2e2e2e;
+  }
+
+  .flap-top {
+    top: 0;
+    border-radius: 5px 5px 0 0;
+    transform-origin: bottom center;
+  }
+
+  .flap-bottom {
+    bottom: 0;
+    border-radius: 0 0 5px 5px;
+    transform-origin: top center;
+  }
+
+  .flap-top .flap-text,
+  .flap-bottom .flap-text {
+    position: absolute;
+    width: 100%;
+    height: 200%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 400;
+    color: #e8e4dc;
+    letter-spacing: -1px;
+  }
+
+  .flap-top .flap-text { top: 0; }
+  .flap-bottom .flap-text { bottom: 0; }
+
+  .flap-bottom {
+    background: linear-gradient(180deg, #2a2a2a 0%, #262626 30%);
+  }
+
+  /* Animating top half flipping down */
+  @keyframes flipTop {
+    0%   { transform: rotateX(0deg); }
+    100% { transform: rotateX(-90deg); }
+  }
+
+  /* Animating bottom half flipping in */
+  @keyframes flipBottom {
+    0%   { transform: rotateX(90deg); }
+    100% { transform: rotateX(0deg); }
+  }
+
+  .flap-top.flipping {
+    animation: flipTop 0.08s linear forwards;
+    z-index: 10;
+  }
+
+  .flap-bottom.flipping {
+    animation: flipBottom 0.08s 0.08s linear forwards;
+    z-index: 9;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Animated world (from spinning-earth.html) -->
+<svg aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden;" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <symbol id="icon-world" viewBox="0 0 216 100">
+      <title>world</title>
+      <g fill-rule="nonzero"><path d="M48 94l-3-4-2-14c0-3-1-5-3-8-4-5-6-9-4-11l1-4 1-3c2-1 9 0 11 1l3 2 2 3 1 2 8 2c1 1 2 2 0 7-1 5-2 7-4 7l-2 3-2 4-2 3-2 1c-2 2-2 9 0 10v1l-3-2zM188 90l3-2h1l-4 2zM176 87h2l-1 1-1-1zM195 86l3-2-2 2h-1zM175 83l-1-2-2-1-6 1c-5 1-5 1-5-2l1-4 2-2 4-3c5-4 9-5 9-3 0 3 3 3 4 1s1-2 1 0l3 4c2 4 1 6-2 10-4 3-7 4-8 1zM100 80c-2-4-4-11-3-14l-1-6c-1-1-2-3-1-4 0-2-4-3-9-3-4 0-5 0-7-3-1-2-2-4-1-7l3-6 3-3c1-2 10-4 11-2l6 3 5-1c3 1 4 0 5-1s-1-2-2-2l-4-1c0-1 3-3 6-2 3 0 3 0 2-2-2-2-6-2-7 0l-2 2-1 2-3-2-3-3c-1 0-1 1 1 2l1 2-2-1c-4-3-6-2-8 1-2 2-4 3-5 1-1-1 0-4 2-4l2-2 1-2 3-2 3-2 2 1c3 0 7-3 5-4l-1-3h-1l-1 3-2 2h-1l-2-1c-2-1-2-1 1-4 5-4 6-4 11-3 4 1 4 1 2 2v1l3-1 6-1c5 0 6-1 5-2l2 1c1 2 2 2 2 1-2-4 12-7 14-4l11 1 29 3 1 2-3 3c-2 0-2 0-1 1l1 3h-2c-1-1-2-3-1-4h-4l-6 2c-1 1-1 1 2 2 3 2 4 6 1 8v3c1 3 0 3-3 0s-4-1-2 3c3 4 3 7-2 8-5 2-4 1-2 5 2 3 0 5-3 4l-2-1-2-2-1-1-1-1-2-2c-1-2-1-2-4 0-2 1-3 4-3 5-1 3-1 3-3 1l-2-4c0-2-1-3-2-3l-1-1-4-2-6-1-4-2c-1 1 3 4 5 4h2c1 1 0 2-1 4-3 2-7 4-8 3l-7-10 5 10c2 2 3 3 5 2 3 0 2 1-2 7-4 4-4 5-4 8 1 3 1 4-1 6l-2 3c0 2-6 9-8 9l-3-2zm22-51l-2-3-1-1v-1c-2 0-2 2-1 4 2 3 4 4 4 1z"/><path d="M117 75c-1-2 0-6 2-7h2l-2 5c0 2-1 3-2 1zM186 64h-3c-2 0-6-3-5-5 1-1 6 1 7 3l2 3-2-1zM160 62h2c1 1 0 1-1 1l-1-1zM154 57l-1-2c2 2 3 1 2-2l-2-3 2 2 1 4 1 3v2l-3-4zM161 59c-1-1-1-2 1-4 3-3 4-3 4 0 0 4-2 6-5 4zM167 59l1-1 1 1-1 1-1-1zM176 59l1-1v2l-1-1zM141 52l1-1v2l-1-1zM170 52l1-1v2l-1-1zM32 50c-1-2-4-3-6-4-4-1-5-3-7-6l-3-5-2-2c-1-3-1-6 2-9 1-1 2-3 1-5 0-4-3-5-8-4H4l2-2 1-1 1-1 2-1c1-2 7-2 23-1 12 1 12 1 12-1h1c1 1 2 2 3 1l1 1-3 1c-2 0-8 4-8 5l2 1 2 3 4-3c3-4 4-4 5-3l3 1 1 2 1 2c3 0-1 2-4 2-2 0-2 0-2 2 1 1 0 2-2 2-4 1-12 9-12 12 0 2 0 2-1 1 0-2-2-3-6-2-3 0-4 1-4 3-2 4 0 6 3 4 3-1 3-1 2 1s-1 2 1 2l1 2 1 3 1 1-3-2zm8-24l1-1c0-1-4-3-5-2l1 1v2c-1 1-1 1 0 0h3zM167 47v-3l1 2c1 2 0 3-1 1z"/><path d="M41 43h2l-1 1-1-1zM37 42v-1l2 1h-2zM16 38l1-1v2l-1-1zM172 32l2-3h1c1 2 0 4-3 4v-1zM173 26h2l-1 1-1-1zM56 22h2l-2 1v-1zM87 19l1-2 1 3-1 1-1-2zM85 19l1-1v1l-1 1v-1zM64 12l1-3c2 0-1-4-3-4s-2 0 0-1V3l-6 2c-3 1-3 1-2-1 2-1 4-2 15-2h14c0 2-6 7-10 9l-5 2-2 1-2-2zM53 12l1-1c2 0-1-3-3-3-2-1-1-1 1-1l4 2c2 1 2 1 1 3-2 1-4 2-4 0zM80 12l1-1 1 1-1 1-1-1zM36 8h-2V7c1-1 7 0 7 1h-5zM116 7l1-1v1l-1 1V7zM50 5h2l-1 1-1-1zM97 5l2-1c0-1 1-1 0 0l-2 1z"/></g>
+    </symbol>
+    <symbol id="icon-repeated-world" viewBox="0 0 432 100">
+      <use href="#icon-world" x="0"></use>
+      <use href="#icon-world" x="189"></use>
+    </symbol>
+  </defs>
+</svg>
+
+<h1 class="page-heading">Greetings, traveller!</h1>
+
+<div class="globe-container">
+  <div class="notice">
+    <span class="world">
+      <span class="images">
+        <svg><use href="#icon-repeated-world"></use></svg>
+      </span>
+    </span>
+  </div>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+const CHARS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const MAX_TILES = 14;
+const FLIP_INTERVAL = 30;
+const STAGGER_DELAY = 35;
+const MIN_FLIPS = 2;
+const MAX_EXTRA_FLIPS = 4;
+
+const board = document.getElementById('board');
+let tiles = [];
+let isAnimating = false;
+
+function createTile() {
+  const flap = document.createElement('div');
+  flap.className = 'flap';
+
+  const face = document.createElement('div');
+  face.className = 'flap-face';
+  face.innerHTML = '<span class="hinge-left"></span><span class="hinge-right"></span><span class="char"> </span>';
+
+  flap.appendChild(face);
+  return { el: flap, face, charEl: face.querySelector('.char'), currentChar: ' ' };
+}
+
+function buildBoard(tileCount) {
+  board.innerHTML = '';
+  tiles = [];
+
+  const group = document.createElement('div');
+  group.className = 'flap-group';
+
+  for (let i = 0; i < tileCount; i++) {
+    const tile = createTile();
+    tiles.push(tile);
+    group.appendChild(tile.el);
+  }
+  board.appendChild(group);
+}
+
+function animateFlip(tile, newChar) {
+  return new Promise(resolve => {
+    if (tile.currentChar === newChar) { resolve(); return; }
+
+    const topHalf = document.createElement('div');
+    topHalf.className = 'flap-top';
+    topHalf.innerHTML = `<div class="flap-text">${tile.currentChar}</div>`;
+
+    const bottomHalf = document.createElement('div');
+    bottomHalf.className = 'flap-bottom';
+    bottomHalf.innerHTML = `<div class="flap-text">${newChar}</div>`;
+
+    tile.el.appendChild(topHalf);
+    tile.el.appendChild(bottomHalf);
+
+    requestAnimationFrame(() => {
+      topHalf.classList.add('flipping');
+      bottomHalf.classList.add('flipping');
+    });
+
+    setTimeout(() => {
+      tile.charEl.textContent = newChar;
+      tile.currentChar = newChar;
+      topHalf.remove();
+      bottomHalf.remove();
+      resolve();
+    }, 160);
+  });
+}
+
+function randomChar() {
+  return CHARS[Math.floor(Math.random() * CHARS.length)];
+}
+
+async function flipTileTo(tile, targetChar, totalFlips) {
+  for (let f = 0; f < totalFlips - 1; f++) {
+    await animateFlip(tile, randomChar());
+    await sleep(FLIP_INTERVAL);
+  }
+  await animateFlip(tile, targetChar);
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function flipToMessage(text) {
+  const upper = text.toUpperCase().replace(/\s+/g, ' ').trim();
+  const tileCount = Math.min(Math.max(upper.length, 1), MAX_TILES);
+  const targetChars = upper.slice(0, tileCount).split('');
+
+  // Resize board to match destination length
+  if (tiles.length !== tileCount) {
+    buildBoard(tileCount);
+  }
+
+  isAnimating = true;
+  let completed = 0;
+  tiles.forEach((tile, i) => {
+    const targetChar = targetChars[i] || ' ';
+    const totalFlips = MIN_FLIPS + Math.floor(Math.random() * MAX_EXTRA_FLIPS) + Math.floor(i * 1.2);
+
+    setTimeout(() => {
+      flipTileTo(tile, targetChar, totalFlips).then(() => {
+        completed++;
+        if (completed === tiles.length) {
+          isAnimating = false;
+        }
+      });
+    }, i * STAGGER_DELAY);
+  });
+}
+
+// Destination cities pool
+const DESTINATIONS = [
+  'OMAHA', 'NEW YORK', 'LOS ANGELES', 'LONDON',
+  'TOKYO', 'PARIS', 'CHICAGO', 'DUBAI',
+  'SYDNEY', 'TORONTO', 'BERLIN', 'SINGAPORE',
+  'HONG KONG', 'SAO PAULO', 'MUMBAI', 'AMSTERDAM',
+  'ISTANBUL', 'BANGKOK', 'SEOUL', 'MEXICO CITY',
+  'MIAMI', 'SAN FRANCISCO', 'DENVER', 'SEATTLE',
+  'OSLO', 'ROME', 'ATHENS', 'CAIRO',
+  'CAPE TOWN', 'DUBLIN', 'LISBON', 'MOSCOW',
+  'REYKJAVIK', 'LIMA', 'BUENOS AIRES', 'VANCOUVER',
+  'HONOLULU', 'ZURICH', 'VIENNA', 'STOCKHOLM',
+  'HELSINKI', 'BARCELONA', 'PRAGUE', 'NAIROBI',
+  'MARRAKECH', 'HANOI', 'KUALA LUMPUR', 'AUCKLAND',
+];
+
+let lastPick = -1;
+
+function randomDestination() {
+  let idx;
+  do { idx = Math.floor(Math.random() * DESTINATIONS.length); } while (idx === lastPick);
+  lastPick = idx;
+  return DESTINATIONS[idx];
+}
+
+// Click the board to flip to a new random destination
+board.addEventListener('click', () => {
+  if (isAnimating) return; // ignore clicks while animating
+  flipToMessage(randomDestination());
+});
+
+// Show first destination: build board to match name length, then animate
+const firstDestination = randomDestination();
+buildBoard(Math.min(firstDestination.replace(/\s+/g, ' ').trim().length, MAX_TILES));
+setTimeout(() => flipToMessage(firstDestination), 500);
+</script>
+
+</body>
+</html>
